@@ -96,8 +96,8 @@ int main(int argc, char* argv[])
 
 	GLuint fbo = 1;
 	GLuint texture;
-	int _width = 512;
-	int _height = 512;
+	int _width = 480;
+	int _height = 480;
 
 	glGenFramebuffers(1, &fbo);
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -114,11 +114,15 @@ int main(int argc, char* argv[])
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
 		printf("Error creating framebuffer\n");
 		return 1;
 	}
 
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	int one = 1;
 	mpv_opengl_fbo fbo_settings =
 			{
 					static_cast<int>(fbo),
@@ -128,9 +132,9 @@ int main(int argc, char* argv[])
 			};
 	mpv_render_param render_params[]
 			{
-					{MPV_RENDER_PARAM_OPENGL_FBO,         const_cast<char*>(MPV_RENDER_API_TYPE_OPENGL)},
-					{MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init_params},
-					{MPV_RENDER_PARAM_INVALID,            nullptr}
+					{MPV_RENDER_PARAM_OPENGL_FBO, &fbo_settings},
+					{MPV_RENDER_PARAM_FLIP_Y,     &one},
+					{MPV_RENDER_PARAM_INVALID,    nullptr}
 			};
 
 	glMatrixMode(GL_PROJECTION);
@@ -155,21 +159,32 @@ int main(int argc, char* argv[])
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
-		glViewport(0, 0, 320, 240);
-
+		glViewport(0, 0, 640, 480);
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		//mpv_render_context_render(mpv_gl, render_params);
+		mpv_render_context_render(mpv_gl, render_params);
+		glViewport(0, 0, 640, 480);
 
 		glDisable(GL_TEXTURE_2D);
-		//glBindTexture(GL_TEXTURE_2D, texture);
-		//glEnable(GL_TEXTURE_2D);
 		glBegin(GL_QUADS);
-		glTexCoord2i(0, 0); glVertex2f(-.5f, -.5f);
-		glTexCoord2i(0, 1); glVertex2f(-.5f, .5f);
-		glTexCoord2i(1, 1); glVertex2f(.5f, .5f);
-		glTexCoord2i(1, 0); glVertex2f(.5f, -.5f);
+		glVertex2f(-.75f, -.75f);
+		glVertex2f(-.75f, .75f);
+		glVertex2f(.75f, .75f);
+		glVertex2f(.75f, -.75f);
+		glEnd();
+
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glEnable(GL_TEXTURE_2D);
+		glBegin(GL_QUADS);
+		glTexCoord2i(0, 0);
+		glVertex2f(-.5f, -.5f);
+		glTexCoord2i(0, 1);
+		glVertex2f(0.f, .5f);
+		glTexCoord2i(1, 1);
+		glVertex2f(1.f, .5f);
+		glTexCoord2i(1, 0);
+		glVertex2f(.5f, -.5f);
 		glEnd();
 		glDisable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
