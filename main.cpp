@@ -139,7 +139,10 @@ int main(int argc, char* argv[])
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	glOrtho(-1.f, 1.f, -1.f, 1.f, -1.0f, 1.0f);
+	gluPerspective(40, (float) _width / (float) _height, 1, 100);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(0, 0, 5, 0, 0, 0, 0, 1, 0);
 
 	// GL End
 
@@ -166,6 +169,10 @@ int main(int argc, char* argv[])
 		mpv_render_context_render(mpv_gl, render_params);
 		glViewport(0, 0, 640, 480);
 
+		glPushMatrix();
+		glTranslatef(0, 0, -4);
+		glScalef(4, 4, 4);
+
 		glDisable(GL_TEXTURE_2D);
 		glBegin(GL_QUADS);
 		glVertex2f(-.75f, -.75f);
@@ -174,20 +181,28 @@ int main(int argc, char* argv[])
 		glVertex2f(.75f, -.75f);
 		glEnd();
 
+		glPopMatrix();
+		glPushMatrix();
+		glScalef(2, 2, 2);
+		static int i = 0;
+		glRotatef(i++, 0, 1, 0);
+
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glEnable(GL_TEXTURE_2D);
 		glBegin(GL_QUADS);
 		glTexCoord2i(0, 0);
 		glVertex2f(-.5f, -.5f);
 		glTexCoord2i(0, 1);
-		glVertex2f(0.f, .5f);
+		glVertex2f(-.5f, .5f);
 		glTexCoord2i(1, 1);
-		glVertex2f(1.f, .5f);
+		glVertex2f(.5f, .5f);
 		glTexCoord2i(1, 0);
 		glVertex2f(.5f, -.5f);
 		glEnd();
 		glDisable(GL_TEXTURE_2D);
 		glBindTexture(GL_TEXTURE_2D, 0);
+
+		glPopMatrix();
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);

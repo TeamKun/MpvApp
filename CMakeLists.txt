@@ -8,4 +8,4 @@ include_directories("${CMAKE_SOURCE_DIR}/inc")
 link_directories("${CMAKE_SOURCE_DIR}/lib")
 
 add_executable(MpvApp main.cpp)
-target_link_libraries(MpvApp libmpv -lOpenGL32 -lglfw3 -lglew32)
+target_link_libraries(MpvApp libmpv -lOpenGL32 -lglfw3 -lglew32 -lglu32)
