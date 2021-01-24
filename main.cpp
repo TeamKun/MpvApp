@@ -122,6 +122,7 @@ int main(int argc, char* argv[])
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	int zero = 0;
 	int one = 1;
 	mpv_opengl_fbo fbo_settings =
 			{
@@ -132,9 +133,10 @@ int main(int argc, char* argv[])
 			};
 	mpv_render_param render_params[]
 			{
-					{MPV_RENDER_PARAM_OPENGL_FBO, &fbo_settings},
-					{MPV_RENDER_PARAM_FLIP_Y,     &one},
-					{MPV_RENDER_PARAM_INVALID,    nullptr}
+					{MPV_RENDER_PARAM_OPENGL_FBO,            &fbo_settings},
+					{MPV_RENDER_PARAM_FLIP_Y,                &one},
+					{MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, &zero},
+					{MPV_RENDER_PARAM_INVALID,               nullptr}
 			};
 
 	glMatrixMode(GL_PROJECTION);
@@ -148,7 +150,7 @@ int main(int argc, char* argv[])
 
 	// Play this file.
 	const char* cmd[] = {"loadfile", argv[1], NULL};
-	check_error(mpv_command(ctx, cmd));
+	check_error(mpv_command_async(ctx, 0, cmd));
 
 	// Let it play, and wait until the user quits.
 	//	while (1)
