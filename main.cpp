@@ -29,8 +29,11 @@ void on_mpv_wakeup(void* ctx)
 {
 }
 
+static bool redraw = false;
+
 void on_mpv_redraw(void* ctx)
 {
+	redraw = true;
 }
 
 int main(int argc, char* argv[])
@@ -76,6 +79,9 @@ int main(int argc, char* argv[])
 	// Done setting up options.
 	check_error(mpv_initialize(ctx));
 
+	int zero = 0;
+	int one = 1;
+
 	mpv_render_context* mpv_gl;
 
 	mpv_opengl_init_params gl_init_params{get_proc_address_mpv, nullptr, nullptr};
@@ -83,6 +89,7 @@ int main(int argc, char* argv[])
 			{
 					{MPV_RENDER_PARAM_API_TYPE,           const_cast<char*>(MPV_RENDER_API_TYPE_OPENGL)},
 					{MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, &gl_init_params},
+					{MPV_RENDER_PARAM_ADVANCED_CONTROL,   &one},
 					{MPV_RENDER_PARAM_INVALID,            nullptr}
 			};
 
@@ -122,8 +129,6 @@ int main(int argc, char* argv[])
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	int zero = 0;
-	int one = 1;
 	mpv_opengl_fbo fbo_settings =
 			{
 					static_cast<int>(fbo),
@@ -168,7 +173,15 @@ int main(int argc, char* argv[])
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		mpv_render_context_render(mpv_gl, render_params);
+		if (redraw) {
+			redraw = false;
+
+			uint64_t flags = mpv_render_context_update(mpv_gl);
+			if (flags & MPV_RENDER_UPDATE_FRAME) {
+				mpv_render_context_render(mpv_gl, render_params);
+			}
+		}
+
 		glViewport(0, 0, 640, 480);
 
 		glPushMatrix();
