@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include <mpv/client.h>
 #include <mpv/render_gl.h>
@@ -173,12 +174,17 @@ int main(int argc, char* argv[])
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		static double vol_i = 0;
+		double vol_s = (cos(vol_i += .01) + 1.) / 2. * 100.;
+
 		if (redraw) {
 			redraw = false;
 
 			uint64_t flags = mpv_render_context_update(mpv_gl);
 			if (flags & MPV_RENDER_UPDATE_FRAME) {
 				mpv_render_context_render(mpv_gl, render_params);
+
+				mpv_set_property_async(ctx, 0, "volume", MPV_FORMAT_DOUBLE, &vol_s);
 			}
 		}
 
@@ -221,6 +227,7 @@ int main(int argc, char* argv[])
 
 		/* Swap front and back buffers */
 		glfwSwapBuffers(window);
+		mpv_render_context_report_swap(mpv_gl);
 
 		/* Poll for and process events */
 		glfwPollEvents();
