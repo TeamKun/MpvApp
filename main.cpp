@@ -26,6 +26,8 @@ void* get_proc_address_mpv(void* fn_ctx, const char* name)
 	return reinterpret_cast<void*>(glfwGetProcAddress(name));
 }
 
+mpv_handle* ctx_master = nullptr;
+
 void on_mpv_wakeup(void* ctx)
 {
 }
@@ -67,18 +69,20 @@ int main(int argc, char* argv[])
 	if (glewInit() != GLEW_OK)
 		return -1;
 
-	mpv_handle* ctx = mpv_create();
-	if (!ctx)
+	ctx_master = mpv_create();
+	if (!ctx_master)
 	{
 		printf("failed creating context\n");
 		return 1;
 	}
 
-	mpv_set_option_string(ctx, "terminal", "yes");
-	mpv_set_option_string(ctx, "msg-level", "all=v");
+	mpv_set_option_string(ctx_master, "terminal", "yes");
+	mpv_set_option_string(ctx_master, "msg-level", "all=v");
 
 	// Done setting up options.
-	check_error(mpv_initialize(ctx));
+	check_error(mpv_initialize(ctx_master));
+
+	mpv_handle* ctx = mpv_create_client(ctx_master, "c1");
 
 	int zero = 0;
 	int one = 1;
@@ -177,15 +181,57 @@ int main(int argc, char* argv[])
 		static double vol_i = 0;
 		double vol_s = (cos(vol_i += .01) + 1.) / 2. * 100.;
 
-		if (redraw) {
+		if (redraw)
+		{
 			redraw = false;
 
 			uint64_t flags = mpv_render_context_update(mpv_gl);
-			if (flags & MPV_RENDER_UPDATE_FRAME) {
+			if (flags & MPV_RENDER_UPDATE_FRAME)
+			{
 				mpv_render_context_render(mpv_gl, render_params);
 
 				mpv_set_property_async(ctx, 0, "volume", MPV_FORMAT_DOUBLE, &vol_s);
 			}
+		}
+
+		mpv_event* event = mpv_wait_event(ctx, 0);
+		switch (event->event_id)
+		{
+			case MPV_EVENT_FILE_LOADED:
+			{
+				mpv_get_property_async(ctx, 0, "width", mpv_format::MPV_FORMAT_INT64);
+				mpv_get_property_async(ctx, 1, "height", mpv_format::MPV_FORMAT_INT64);
+			}
+				break;
+
+			case MPV_EVENT_VIDEO_RECONFIG:
+			{
+				mpv_get_property_async(ctx, 2, "dwidth", mpv_format::MPV_FORMAT_INT64);
+				mpv_get_property_async(ctx, 3, "dheight", mpv_format::MPV_FORMAT_INT64);
+			}
+				break;
+
+			case MPV_EVENT_GET_PROPERTY_REPLY:
+			{
+				int64_t data = *((int64_t*) ((mpv_event_property*) event->data)->data);
+				switch (event->reply_userdata)
+				{
+					case 0: printf("width: %lld", data); break;
+					case 1: printf("height: %lld", data); break;
+					case 2: printf("dwidth: %lld", data); break;
+					case 3: printf("dheight: %lld", data); break;
+				}
+			}
+				break;
+
+			case MPV_EVENT_END_FILE:
+			{
+				printf("END!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+			}
+				break;
+
+			default:
+				break;
 		}
 
 		glViewport(0, 0, 640, 480);
