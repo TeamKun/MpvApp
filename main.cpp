@@ -11,6 +11,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
 
 static inline void check_error(int status)
 {
@@ -76,13 +77,11 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	mpv_set_option_string(ctx_master, "terminal", "yes");
-	mpv_set_option_string(ctx_master, "msg-level", "all=v");
+	//mpv_set_option_string(ctx_master, "terminal", "yes");
+	//mpv_set_option_string(ctx_master, "msg-level", "all=v");
 
 	// Done setting up options.
 	check_error(mpv_initialize(ctx_master));
-
-	mpv_handle* ctx = mpv_create_client(ctx_master, "c1");
 
 	int zero = 0;
 	int one = 1;
@@ -98,7 +97,9 @@ int main(int argc, char* argv[])
 					{MPV_RENDER_PARAM_INVALID,            nullptr}
 			};
 
-	if (mpv_render_context_create(&mpv_gl, ctx, params) < 0)
+	mpv_handle* ctx = mpv_create_client(ctx_master, nullptr);
+
+	if (mpv_render_context_create(&mpv_gl, ctx_master, params) < 0)
 		throw std::runtime_error("failed to initialize mpv GL context");
 
 	mpv_set_wakeup_callback(ctx, on_mpv_wakeup, nullptr);
@@ -171,6 +172,12 @@ int main(int argc, char* argv[])
 	//			break;
 	//	}
 
+	mpv_observe_property(ctx, 0, "duration", MPV_FORMAT_DOUBLE);
+	//mpv_observe_property(ctx, 1, "playback-time", MPV_FORMAT_INT64);
+	mpv_observe_property(ctx, 2, "time-remaining", MPV_FORMAT_DOUBLE);
+	mpv_observe_property(ctx, 3, "time-pos", MPV_FORMAT_DOUBLE);
+	//mpv_observe_property(ctx, 4, "percent-pos", MPV_FORMAT_INT64);
+
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
@@ -188,7 +195,9 @@ int main(int argc, char* argv[])
 			uint64_t flags = mpv_render_context_update(mpv_gl);
 			if (flags & MPV_RENDER_UPDATE_FRAME)
 			{
+				glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_MARKER, 114514, GL_DEBUG_SEVERITY_HIGH, 17, "MPV Render Start");
 				mpv_render_context_render(mpv_gl, render_params);
+				glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_MARKER, 114515, GL_DEBUG_SEVERITY_HIGH, 20, "MPV Render Finished");
 
 				mpv_set_property_async(ctx, 0, "volume", MPV_FORMAT_DOUBLE, &vol_s);
 			}
@@ -201,6 +210,7 @@ int main(int argc, char* argv[])
 			{
 				mpv_get_property_async(ctx, 0, "width", mpv_format::MPV_FORMAT_INT64);
 				mpv_get_property_async(ctx, 1, "height", mpv_format::MPV_FORMAT_INT64);
+				std::cout << "LOADED" << std::endl;
 			}
 				break;
 
@@ -208,6 +218,7 @@ int main(int argc, char* argv[])
 			{
 				mpv_get_property_async(ctx, 2, "dwidth", mpv_format::MPV_FORMAT_INT64);
 				mpv_get_property_async(ctx, 3, "dheight", mpv_format::MPV_FORMAT_INT64);
+				std::cout << "VIDEO_RECONFIG" << std::endl;
 			}
 				break;
 
@@ -220,6 +231,23 @@ int main(int argc, char* argv[])
 					case 1: printf("height: %lld", data); break;
 					case 2: printf("dwidth: %lld", data); break;
 					case 3: printf("dheight: %lld", data); break;
+				}
+			}
+				break;
+
+			case MPV_EVENT_PROPERTY_CHANGE:
+			{
+				mpv_event_property* prop = (mpv_event_property*) event->data;
+				double data = -114514;
+				if (prop->data != nullptr)
+					data = *((double*) prop->data);
+				switch (event->reply_userdata)
+				{
+					case 0: std::cout << "duration: " << data << std::endl; break;
+					case 1: std::cout << "playback-time: " << data << std::endl; break;
+					case 2: std::cout << "time-remaining: " << data << std::endl; break;
+					case 3: std::cout << "time-pos: " << data << std::endl; break;
+					case 4: std::cout << "percent-pos: " << data << std::endl; break;
 				}
 			}
 				break;
